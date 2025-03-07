@@ -1,0 +1,334 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Cerberus Chatbot</title>
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+        />
+        <style>
+            .chat-container {
+                height: 70vh;
+                overflow-y: auto;
+                padding: 20px;
+                background-color: #f8f9fa;
+                border-radius: 10px;
+            }
+            .message {
+                margin-bottom: 15px;
+                padding: 10px 15px;
+                border-radius: 10px;
+                max-width: 80%;
+            }
+            .user-message {
+                background-color: #007bff;
+                color: white;
+                margin-left: auto;
+            }
+            .assistant-message {
+                background-color: #e9ecef;
+                color: #212529;
+                margin-right: auto;
+            }
+            .system-message {
+                background-color: #ffc107;
+                color: #212529;
+                margin-right: auto;
+            }
+            .feedback-buttons {
+                display: flex;
+                justify-content: flex-end;
+                margin-top: 5px;
+            }
+            .feedback-buttons button {
+                margin-left: 5px;
+                background: none;
+                border: none;
+                cursor: pointer;
+                font-size: 1.2rem;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container mt-5">
+            <h1 class="text-center mb-4">Cerberus Chatbot</h1>
+
+            <div class="row mb-3">
+                <div class="col">
+                    <select id="conversation-select" class="form-select">
+                        <option value="new">Nueva conversación</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="chat-container mb-3" id="chat-container">
+                <div class="message system-message">
+                    Hola, soy Cerberus, tu asistente digital. ¿En qué puedo
+                    ayudarte hoy?
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <div class="input-group">
+                        <input
+                            type="text"
+                            id="user-input"
+                            class="form-control"
+                            placeholder="Escribe tu pregunta aquí..."
+                        />
+                        <button class="btn btn-primary" id="send-button">
+                            Enviar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let currentConversationId = null;
+
+            document.addEventListener("DOMContentLoaded", function () {
+                // Cargar conversaciones existentes
+                fetchConversations();
+
+                // Manejar envío de mensajes
+                document
+                    .getElementById("send-button")
+                    .addEventListener("click", sendMessage);
+                document
+                    .getElementById("user-input")
+                    .addEventListener("keypress", function (e) {
+                        if (e.key === "Enter") {
+                            sendMessage();
+                        }
+                    });
+
+                // Manejar cambio de conversación
+                document
+                    .getElementById("conversation-select")
+                    .addEventListener("change", function () {
+                        const selectedValue = this.value;
+                        if (selectedValue === "new") {
+                            // Nueva conversación
+                            currentConversationId = null;
+                            clearChatContainer();
+                            addSystemMessage(
+                                "Hola, soy Cerberus, tu asistente digital. ¿En qué puedo ayudarte hoy?",
+                            );
+                        } else {
+                            // Cargar conversación existente
+                            loadConversation(selectedValue);
+                        }
+                    });
+            });
+
+            function fetchConversations() {
+                fetch("/chatbot/api/conversations/")
+                    .then((response) => response.json())
+                    .then((data) => {
+                        const select = document.getElementById(
+                            "conversation-select",
+                        );
+                        data.conversations.forEach((conv) => {
+                            const option = document.createElement("option");
+                            option.value = conv.id;
+                            option.textContent = `Conversación del ${new Date(conv.created_at).toLocaleString()}`;
+                            select.appendChild(option);
+                        });
+                    })
+                    .catch((error) =>
+                        console.error("Error cargando conversaciones:", error),
+                    );
+            }
+
+            function loadConversation(conversationId) {
+                fetch(`/chatbot/api/conversations/${conversationId}/`)
+                    .then((response) => response.json())
+                    .then((data) => {
+                        currentConversationId = data.conversation_id;
+                        clearChatContainer();
+
+                        data.messages.forEach((msg) => {
+                            if (msg.role === "user") {
+                                addUserMessage(msg.content);
+                            } else if (msg.role === "assistant") {
+                                addAssistantMessage(
+                                    msg.content,
+                                    msg.id,
+                                    msg.feedback,
+                                );
+                            } else if (msg.role === "system") {
+                                addSystemMessage(msg.content);
+                            }
+                        });
+
+                        // Desplazarse al final del chat
+                        scrollToBottom();
+                    })
+                    .catch((error) =>
+                        console.error("Error cargando conversación:", error),
+                    );
+            }
+
+            function sendMessage() {
+                const userInput = document.getElementById("user-input");
+                const message = userInput.value.trim();
+
+                if (!message) return;
+
+                // Añadir mensaje del usuario a la interfaz
+                addUserMessage(message);
+
+                // Limpiar el input
+                userInput.value = "";
+
+                // Indicar que estamos cargando
+                const loadingMsg = addSystemMessage(
+                    "Procesando tu consulta...",
+                );
+
+                // Enviar mensaje al backend
+                fetch("/chatbot/api/chat/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        query: message,
+                        conversation_id: currentConversationId,
+                    }),
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        // Eliminar mensaje de carga
+                        loadingMsg.remove();
+
+                        if (data.error) {
+                            addSystemMessage(
+                                data.fallback_response || data.error,
+                            );
+                        } else {
+                            // Actualizar ID de conversación si es nueva
+                            currentConversationId = data.conversation_id;
+
+                            // Añadir respuesta del asistente
+                            addAssistantMessage(data.response, data.id);
+                        }
+
+                        // Desplazarse al final del chat
+                        scrollToBottom();
+                    })
+                    .catch((error) => {
+                        // Eliminar mensaje de carga
+                        loadingMsg.remove();
+
+                        console.error("Error:", error);
+                        addSystemMessage(
+                            "Lo siento, ha ocurrido un error al procesar tu consulta.",
+                        );
+
+                        // Desplazarse al final del chat
+                        scrollToBottom();
+                    });
+            }
+
+            function addUserMessage(content) {
+                const chatContainer = document.getElementById("chat-container");
+                const messageDiv = document.createElement("div");
+                messageDiv.className = "message user-message";
+                messageDiv.textContent = content;
+                chatContainer.appendChild(messageDiv);
+            }
+
+            function addAssistantMessage(
+                content,
+                messageId,
+                existingFeedback = null,
+            ) {
+                const chatContainer = document.getElementById("chat-container");
+
+                // Mensaje principal
+                const messageDiv = document.createElement("div");
+                messageDiv.className = "message assistant-message";
+                messageDiv.textContent = content;
+                chatContainer.appendChild(messageDiv);
+
+                // Botones de feedback
+                if (messageId) {
+                    const feedbackDiv = document.createElement("div");
+                    feedbackDiv.className = "feedback-buttons";
+
+                    // Si ya hay feedback, mostrarlo
+                    if (existingFeedback) {
+                        const feedbackSpan = document.createElement("span");
+                        feedbackSpan.textContent = `Has valorado esta respuesta con ${existingFeedback}/5`;
+                        feedbackDiv.appendChild(feedbackSpan);
+                    } else {
+                        // Mostrar opciones para dar feedback
+                        for (let i = 1; i <= 5; i++) {
+                            const button = document.createElement("button");
+                            button.textContent = "⭐";
+                            button.title = `Calificar ${i}/5`;
+                            button.onclick = function () {
+                                sendFeedback(messageId, i, feedbackDiv);
+                            };
+                            feedbackDiv.appendChild(button);
+                        }
+                    }
+
+                    chatContainer.appendChild(feedbackDiv);
+                }
+
+                return messageDiv;
+            }
+
+            function addSystemMessage(content) {
+                const chatContainer = document.getElementById("chat-container");
+                const messageDiv = document.createElement("div");
+                messageDiv.className = "message system-message";
+                messageDiv.textContent = content;
+                chatContainer.appendChild(messageDiv);
+                return messageDiv;
+            }
+
+            function sendFeedback(messageId, rating, feedbackDiv) {
+                fetch("/chatbot/api/feedback/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        message_id: messageId,
+                        rating: rating,
+                    }),
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        // Actualizar la interfaz
+                        feedbackDiv.innerHTML = "";
+                        const thankYouSpan = document.createElement("span");
+                        thankYouSpan.textContent = `¡Gracias por tu valoración de ${rating}/5!`;
+                        feedbackDiv.appendChild(thankYouSpan);
+                    })
+                    .catch((error) => {
+                        console.error("Error:", error);
+                        feedbackDiv.innerHTML = "Error al enviar valoración.";
+                    });
+            }
+
+            function clearChatContainer() {
+                const chatContainer = document.getElementById("chat-container");
+                chatContainer.innerHTML = "";
+            }
+
+            function scrollToBottom() {
+                const chatContainer = document.getElementById("chat-container");
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        </script>
+    </body>
+</html>
