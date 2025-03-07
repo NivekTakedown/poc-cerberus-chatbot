@@ -15,9 +15,14 @@ def get_conversations_for_user(user):
 def get_conversations_for_session(session_id):
     return list(Conversation.objects.filter(session_id=session_id))
 
-@require_http_methods(["GET"])
+@require_http_methods(["GET", "OPTIONS"])  # Añadir OPTIONS
 async def conversations(request):
     """API endpoint para obtener todas las conversaciones del usuario."""
+    # Para manejar las solicitudes OPTIONS (preflight CORS)
+    if request.method == "OPTIONS":
+        response = JsonResponse({})
+        return response
+
     if request.user.is_authenticated:
         conversations_list = await get_conversations_for_user(request.user)
     else:
@@ -51,9 +56,13 @@ def get_conversation_with_messages(conversation_id, user=None, session_id=None):
     messages = Message.objects.filter(conversation=conversation).order_by('created_at')
     return conversation, list(messages)
 
-@require_http_methods(["GET"])
+@require_http_methods(["GET", "OPTIONS"])  # Añadir OPTIONS
 async def get_conversation(request, conversation_id):
     """API endpoint para obtener los mensajes de una conversación específica."""
+    # Para manejar las solicitudes OPTIONS (preflight CORS)
+    if request.method == "OPTIONS":
+        response = JsonResponse({})
+        return response
     try:
         if request.user.is_authenticated:
             conversation, messages = await get_conversation_with_messages(

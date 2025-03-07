@@ -58,9 +58,14 @@ def create_message(conversation, role, content):
     )
 
 @csrf_exempt
-@require_http_methods(["POST"])
+@require_http_methods(["POST", "OPTIONS"])  # Añadir OPTIONS
 async def chat(request):
     """API endpoint para el chatbot."""
+    # Para manejar las solicitudes OPTIONS (preflight CORS)
+    if request.method == "OPTIONS":
+        response = JsonResponse({})
+        return response
+
     try:
         data = json.loads(request.body)
         query = data.get('query', '')

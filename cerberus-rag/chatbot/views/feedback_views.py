@@ -36,9 +36,14 @@ def save_feedback_to_file(query, answer, rating):
     return chat_service.save_feedback(query, answer, rating)
 
 @csrf_exempt
-@require_http_methods(["POST"])
+@require_http_methods(["POST", "OPTIONS"])  # Añadir OPTIONS
 async def feedback(request):
     """API endpoint para guardar feedback de las respuestas."""
+    # Para manejar las solicitudes OPTIONS (preflight CORS)
+    if request.method == "OPTIONS":
+        response = JsonResponse({})
+        return response
+
     try:
         data = json.loads(request.body)
         message_id = data.get('message_id')
