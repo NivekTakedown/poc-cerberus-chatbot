@@ -146,13 +146,22 @@ class ChatService:
                 "fallback_response": f"Lo siento, encontré un error al procesar tu consulta. Esto es lo que encontré basado en una búsqueda por palabras clave: {fallback}"
             }
 
-    def save_feedback(self, query: str, answer: str, feedback: int):
-        feedback_data = {
-            "query": query,
-            "answer": answer,
-            "feedback": feedback
-        }
-        feedback_file = os.path.join(settings.BASE_DIR, "feedback_log.json")
-        with open(feedback_file, "a") as f:
-            json.dump(feedback_data, f)
-            f.write("\n")
+    async def save_feedback_async(self, query: str, answer: str, feedback: int):
+        """Versión asíncrona de save_feedback"""
+        try:
+            import aiofiles
+
+            feedback_data = {
+                "query": query,
+                "answer": answer,
+                "feedback": feedback
+            }
+            feedback_file = os.path.join(settings.BASE_DIR, "feedback_log.json")
+
+            async with aiofiles.open(feedback_file, "a") as f:
+                await f.write(json.dumps(feedback_data) + "\n")
+
+            return True
+        except Exception as e:
+            logger.error(f"Error guardando feedback de forma asíncrona: {str(e)}")
+            return False
