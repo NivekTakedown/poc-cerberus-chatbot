@@ -1,6 +1,7 @@
 import React from "react";
 import "./App.css";
-import CerberusChat from "./components/CerberusChat";
+import CerberusChat from "./organisms/CerberusChat";
+import { API_URL } from "./config/env";
 
 function App() {
   return (
@@ -18,10 +19,7 @@ function App() {
       </main>
 
       {/* Integración del chatbot */}
-      <CerberusChat
-        apiUrl="http://localhost:8000/chatbot/api"
-        position="bottom-right"
-      />
+      <CerberusChat apiUrl={API_URL} position="bottom-right" />
     </div>
   );
 }
