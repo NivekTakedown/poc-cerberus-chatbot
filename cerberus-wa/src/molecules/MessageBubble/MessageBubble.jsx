@@ -1,4 +1,6 @@
 import React from "react";
+import ReactMarkdown from "react-markdown";
+import rehypeSanitize from "rehype-sanitize";
 import "./MessageBubble.css";
 import Button from "../../atoms/Button";
 
@@ -7,7 +9,15 @@ const MessageBubble = ({ message, onFeedback }) => {
 
   return (
     <div className="message-container">
-      <div className={`message message-${role}`}>{content}</div>
+      <div className={`message message-${role}`}>
+        {role === "assistant" ? (
+          <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
+            {content}
+          </ReactMarkdown>
+        ) : (
+          content
+        )}
+      </div>
 
       {role === "assistant" && id && (
         <div className="message-feedback">
