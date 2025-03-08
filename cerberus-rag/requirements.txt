@@ -12,3 +12,4 @@ ollama
 langchain-chroma
 langchain-huggingface
 langchain-ollama
+django-cors-headers

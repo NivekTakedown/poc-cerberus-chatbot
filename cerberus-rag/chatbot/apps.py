@@ -15,7 +15,7 @@ class ChatbotConfig(AppConfig):
         if 'makemigrations' not in sys.argv and 'migrate' not in sys.argv:
             logger.info("Iniciando servicio de chatbot...")
             # Iniciar el servicio en un hilo separado para no bloquear el arranque
-            from .views import init_chat_service
+            from .views.chat_views import init_chat_service
             init_thread = threading.Thread(target=init_chat_service)
             init_thread.daemon = True
             init_thread.start()
