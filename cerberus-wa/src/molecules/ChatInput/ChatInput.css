@@ -1,6 +1,24 @@
 .chat-input-container {
     display: flex;
     padding: 10px;
-    border-top: 1px solid #e9ecef;
+    border-top: 1px solid #e0e0e0;
     background-color: white;
+    gap: 8px;
+}
+
+.chat-input-container button {
+    background-color: #4caf50;
+    color: white;
+    border-radius: 5px 10px 5px 10px;
+    transition: all 0.2s ease;
+}
+
+.chat-input-container button:hover:not(:disabled) {
+    background-color: #43a047;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.chat-input-container button:disabled {
+    background-color: #cccccc;
+    color: #666666;
 }

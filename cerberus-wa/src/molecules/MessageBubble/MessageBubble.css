@@ -6,30 +6,33 @@
 
 .message {
     padding: 10px 15px;
-    border-radius: 10px;
+    border-radius: 10px 16px 10px 16px;
     max-width: 80%;
     word-wrap: break-word;
-    text-align: left;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    text-align: justify;
+}
+
+.message-user {
+    background-color: #e9f5db;
+    color: #333;
+    margin-left: auto;
+    border: 1px solid #cfdac8;
 }
 
 .message-assistant {
-    background-color: #f1f1f1;
+    background-color: #f8f8f8;
     color: #333;
     margin-right: auto;
-    line-height: 1.5;
-    text-align: justify; /* Texto justificado */
-}
-.message-user {
-    background-color: #007bff;
-    color: white;
-    margin-left: auto;
+    border: 1px solid #e0e0e0;
 }
 
 .message-system {
-    background-color: #ffeeba;
-    color: #856404;
+    background-color: #f7f7d7;
+    color: #6c6a00;
     margin-right: auto;
     font-style: italic;
+    border: 1px solid #e6e6c6;
 }
 
 .message-feedback {
@@ -45,7 +48,8 @@
 }
 
 .rating-buttons span {
-    color: #6c757d;
+    color: #677d29;
+    font-weight: 500;
 }
 
 .rating-button {
@@ -60,30 +64,30 @@
 }
 
 .rating-display {
-    color: #6c757d;
+    color: #677d29;
 }
 
 /* Estilos adicionales para markdown */
-.message-assistant {
-    line-height: 1.5;
-}
-
-.message-assistant p {
-    margin: 0.5em 0;
-}
-
-.message-assistant p:first-child {
-    margin-top: 0;
-}
 .message-streaming {
     position: relative;
-    border-left: 3px solid #007bff;
+    border-left: 3px solid #394d03;
 }
 
 .streaming-indicator {
     display: inline-block;
     margin-left: 5px;
     vertical-align: middle;
+}
+
+.message-streaming::after {
+    content: "";
+    display: inline-block;
+    width: 3px;
+    height: 16px;
+    background-color: #394d03;
+    margin-left: 2px;
+    animation: typing 1s infinite;
+    vertical-align: text-bottom;
 }
 
 @keyframes typing {
@@ -96,26 +100,6 @@
     }
 }
 
-.message-streaming {
-    position: relative;
-    border-left: 3px solid #007bff;
-}
-.streaming-indicator {
-    display: inline-block;
-    margin-left: 5px;
-    vertical-align: middle;
-}
-
-.message-streaming::after {
-    content: "";
-    display: inline-block;
-    width: 3px;
-    height: 16px;
-    background-color: #007bff;
-    margin-left: 2px;
-    animation: typing 1s infinite;
-    vertical-align: text-bottom;
-}
 .message-assistant p:last-child {
     margin-bottom: 0;
 }

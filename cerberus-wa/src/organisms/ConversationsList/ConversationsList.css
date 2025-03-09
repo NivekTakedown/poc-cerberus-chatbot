@@ -11,6 +11,16 @@
     width: 100%;
     margin-bottom: 16px;
     padding: 10px;
+    background-color: #4caf50;
+    color: white;
+    border-radius: 5px 10px 5px 10px;
+    border: 1px solid #555;
+    transition: all 0.2s ease;
+}
+
+.new-conversation-button:hover {
+    background-color: #43a047;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .conversations-list {
@@ -24,22 +34,26 @@
     text-align: left;
     padding: 10px;
     margin-bottom: 8px;
-    background-color: #f8f9fa;
-    border: 1px solid #e9ecef;
-    border-radius: 4px;
+    background-color: #f8f8f8;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px 10px 5px 10px;
+    transition: all 0.2s ease;
 }
 
 .conversation-button:hover {
-    background-color: #e9ecef;
+    background-color: #e9f5db;
+    border-color: #cfdac8;
 }
 
 .conversation-button.active {
-    background-color: #e2f0ff;
-    border-color: #b8daff;
+    background-color: #e9f5db;
+    border-color: #4caf50;
+    color: #333;
+    font-weight: bold;
 }
 
 .no-conversations {
     text-align: center;
-    color: #6c757d;
+    color: #677d29;
     padding: 20px;
 }

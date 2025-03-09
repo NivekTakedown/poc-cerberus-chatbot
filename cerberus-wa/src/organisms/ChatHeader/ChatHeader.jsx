@@ -22,7 +22,7 @@ const ChatHeader = ({
     <div className={`chat-header ${statusClass}`}>
       <div className="chat-title">
         <h3>{title}</h3>
-        {streaming && <Spinner size="small" className="header-spinner" />}
+
         <div className={`connection-indicator ${statusClass}`}></div>
         {showHistoryButton && (
           <Button
