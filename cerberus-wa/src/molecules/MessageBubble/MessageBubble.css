@@ -9,18 +9,20 @@
     border-radius: 10px;
     max-width: 80%;
     word-wrap: break-word;
-}
-
-.message-user {
-    background-color: #007bff;
-    color: white;
-    margin-left: auto;
+    text-align: left;
 }
 
 .message-assistant {
     background-color: #f1f1f1;
     color: #333;
     margin-right: auto;
+    line-height: 1.5;
+    text-align: justify; /* Texto justificado */
+}
+.message-user {
+    background-color: #007bff;
+    color: white;
+    margin-left: auto;
 }
 
 .message-system {
@@ -92,6 +94,16 @@
     50% {
         opacity: 1;
     }
+}
+
+.message-streaming {
+    position: relative;
+    border-left: 3px solid #007bff;
+}
+.streaming-indicator {
+    display: inline-block;
+    margin-left: 5px;
+    vertical-align: middle;
 }
 
 .message-streaming::after {

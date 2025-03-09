@@ -41,17 +41,12 @@ const ChatbotTemplate = ({
     );
   }
 
-  const statusText = !connected
-    ? "(Desconectado)"
-    : streaming
-      ? "(Generando...)"
-      : "(Conectado)";
-
+  // Eliminado el texto de "(Conectado)" dejando solo el indicador visual
   return (
     <div className={`chatbot-container ${positionClass}`}>
       <div className="chatbot-window">
         <ChatHeader
-          title={`Cerberus Chatbot ${statusText}`}
+          title="Cerberus Chatbot"
           onClose={() => setIsOpen(false)}
           onToggleConversations={() => setShowConversations(!showConversations)}
           showHistoryButton={!!conversationId}

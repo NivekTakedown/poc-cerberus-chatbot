@@ -18,11 +18,6 @@ const MessageBubble = ({ message, onFeedback }) => {
             <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
               {content}
             </ReactMarkdown>
-            {isStreaming && (
-              <span className="streaming-indicator">
-                <Spinner size="small" />
-              </span>
-            )}
           </>
         ) : (
           content
