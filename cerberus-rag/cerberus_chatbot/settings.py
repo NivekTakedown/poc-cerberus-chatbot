@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'chatbot.apps.ChatbotConfig',
     'corsheaders',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -51,6 +52,18 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+# web socket
+ASGI_APPLICATION = 'cerberus_chatbot.asgi.application'
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        # For production, use Redis:
+        # 'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        # 'CONFIG': {
+        #     "hosts": [('127.0.0.1', 6379)],
+        # },
+    },
+}
 CORS_ALLOW_ALL_ORIGINS = True  # En producción, esto debería ser más restrictivo
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [

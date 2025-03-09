@@ -92,11 +92,10 @@ class LLMService:
                     return False
 
             # Configurar el modelo
-            streaming_handler = StreamingStdOutCallbackHandler()
             self.llm = OllamaLLM(
                 model=self.model_name,
                 temperature=self.temperature,
-                callbacks=[streaming_handler],
+                streaming=True,  # Make sure streaming is enabled
                 base_url="http://localhost:11434"
             )
 
