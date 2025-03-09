@@ -3,23 +3,28 @@ import ReactMarkdown from "react-markdown";
 import rehypeSanitize from "rehype-sanitize";
 import "./MessageBubble.css";
 import Button from "../../atoms/Button";
+import Spinner from "../../atoms/Spinner";
 
 const MessageBubble = ({ message, onFeedback }) => {
-  const { id, role, content, feedback } = message;
+  const { id, role, content, feedback, isStreaming } = message;
 
   return (
     <div className="message-container">
-      <div className={`message message-${role}`}>
+      <div
+        className={`message message-${role} ${isStreaming ? "message-streaming" : ""}`}
+      >
         {role === "assistant" ? (
-          <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
-            {content}
-          </ReactMarkdown>
+          <>
+            <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
+              {content}
+            </ReactMarkdown>
+          </>
         ) : (
           content
         )}
       </div>
 
-      {role === "assistant" && id && (
+      {role === "assistant" && id && !isStreaming && (
         <div className="message-feedback">
           {feedback ? (
             <div className="rating-display">

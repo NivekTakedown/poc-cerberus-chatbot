@@ -90,6 +90,9 @@
 
         <script>
             let currentConversationId = null;
+            let chatSocket = null;
+            let currentStreamingMessage = null;
+            let streamingMessageId = null;
 
             document.addEventListener("DOMContentLoaded", function () {
                 // Cargar conversaciones existentes
@@ -116,15 +119,122 @@
                             // Nueva conversación
                             currentConversationId = null;
                             clearChatContainer();
-                            addSystemMessage(
-                                "Hola, soy Cerberus, tu asistente digital. ¿En qué puedo ayudarte hoy?",
-                            );
+                            connectWebSocket();
                         } else {
                             // Cargar conversación existente
                             loadConversation(selectedValue);
                         }
                     });
+
+                // Connect to WebSocket immediately
+                connectWebSocket();
             });
+
+            function connectWebSocket() {
+                // Close existing connection if any
+                if (chatSocket) {
+                    chatSocket.close();
+                }
+
+                // Create WebSocket connection
+                const wsProtocol =
+                    window.location.protocol === "https:" ? "wss:" : "ws:";
+                const wsPath = currentConversationId
+                    ? `${wsProtocol}//${window.location.host}/ws/chat/${currentConversationId}/`
+                    : `${wsProtocol}//${window.location.host}/ws/chat/`;
+
+                chatSocket = new WebSocket(wsPath);
+
+                chatSocket.onopen = function (e) {
+                    console.log("WebSocket connection established");
+                };
+
+                chatSocket.onmessage = function (e) {
+                    const data = JSON.parse(e.data);
+                    handleWebSocketMessage(data);
+                };
+
+                chatSocket.onclose = function (e) {
+                    console.log("WebSocket connection closed");
+                    // Try to reconnect after a delay
+                    setTimeout(connectWebSocket, 2000);
+                };
+
+                chatSocket.onerror = function (e) {
+                    console.error("WebSocket error:", e);
+                };
+            }
+
+            function handleWebSocketMessage(data) {
+                const messageType = data.type;
+
+                switch (messageType) {
+                    case "system_message":
+                        if (data.temp_id) {
+                            // This is a loading/processing message
+                            const loadingMsg = addSystemMessage(data.message);
+                            loadingMsg.id = data.temp_id;
+                        } else {
+                            addSystemMessage(data.message);
+                        }
+                        break;
+
+                    case "streaming_token":
+                        handleStreamingToken(data.token, data.message_id);
+                        break;
+
+                    case "message_complete":
+                        currentConversationId = data.conversation_id;
+                        streamingMessageId = data.message_id;
+                        currentStreamingMessage = null;
+
+                        // Add feedback buttons now that the message is complete
+                        addFeedbackButtons(data.message_id);
+                        break;
+
+                    case "error":
+                        addSystemMessage(`Error: ${data.message}`);
+                        break;
+
+                    case "feedback_received":
+                        updateFeedbackUI(data.message_id, data.rating);
+                        break;
+                }
+
+                // Scroll to bottom with each update
+                scrollToBottom();
+            }
+
+            function handleStreamingToken(token, messageId) {
+                // If this is the first token of a new message
+                if (
+                    !currentStreamingMessage ||
+                    streamingMessageId !== messageId
+                ) {
+                    // Remove any loading messages
+                    document
+                        .querySelectorAll(".system-message")
+                        .forEach((elem) => {
+                            if (
+                                elem.textContent.includes(
+                                    "Procesando tu consulta",
+                                )
+                            ) {
+                                elem.remove();
+                            }
+                        });
+
+                    // Create a new message container
+                    currentStreamingMessage = addAssistantMessage(
+                        "",
+                        messageId,
+                    );
+                    streamingMessageId = messageId;
+                }
+
+                // Convert markdown tokens with syntax highlighting
+                currentStreamingMessage.innerHTML += token;
+            }
 
             function fetchConversations() {
                 fetch("/chatbot/api/conversations/")
@@ -146,27 +256,34 @@
             }
 
             function loadConversation(conversationId) {
+                currentConversationId = conversationId;
+
                 fetch(`/chatbot/api/conversations/${conversationId}/`)
                     .then((response) => response.json())
                     .then((data) => {
-                        currentConversationId = data.conversation_id;
                         clearChatContainer();
 
                         data.messages.forEach((msg) => {
                             if (msg.role === "user") {
                                 addUserMessage(msg.content);
                             } else if (msg.role === "assistant") {
-                                addAssistantMessage(
+                                const messageDiv = addAssistantMessage(
                                     msg.content,
                                     msg.id,
-                                    msg.feedback,
                                 );
+                                // Add feedback buttons or feedback result
+                                if (msg.feedback) {
+                                    updateFeedbackUI(msg.id, msg.feedback);
+                                } else {
+                                    addFeedbackButtons(msg.id);
+                                }
                             } else if (msg.role === "system") {
                                 addSystemMessage(msg.content);
                             }
                         });
 
-                        // Desplazarse al final del chat
+                        // Connect to WebSocket for this conversation
+                        connectWebSocket();
                         scrollToBottom();
                     })
                     .catch((error) =>
@@ -180,60 +297,26 @@
 
                 if (!message) return;
 
-                // Añadir mensaje del usuario a la interfaz
+                // Add user message to the UI
                 addUserMessage(message);
 
-                // Limpiar el input
+                // Clear input
                 userInput.value = "";
 
-                // Indicar que estamos cargando
-                const loadingMsg = addSystemMessage(
-                    "Procesando tu consulta...",
-                );
-
-                // Enviar mensaje al backend
-                fetch("/chatbot/api/chat/", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        query: message,
-                        conversation_id: currentConversationId,
-                    }),
-                })
-                    .then((response) => response.json())
-                    .then((data) => {
-                        // Eliminar mensaje de carga
-                        loadingMsg.remove();
-
-                        if (data.error) {
-                            addSystemMessage(
-                                data.fallback_response || data.error,
-                            );
-                        } else {
-                            // Actualizar ID de conversación si es nueva
-                            currentConversationId = data.conversation_id;
-
-                            // Añadir respuesta del asistente
-                            addAssistantMessage(data.response, data.id);
-                        }
-
-                        // Desplazarse al final del chat
-                        scrollToBottom();
-                    })
-                    .catch((error) => {
-                        // Eliminar mensaje de carga
-                        loadingMsg.remove();
-
-                        console.error("Error:", error);
-                        addSystemMessage(
-                            "Lo siento, ha ocurrido un error al procesar tu consulta.",
-                        );
-
-                        // Desplazarse al final del chat
-                        scrollToBottom();
-                    });
+                // Send message via WebSocket
+                if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                    chatSocket.send(
+                        JSON.stringify({
+                            type: "chat_message",
+                            message: message,
+                            conversation_id: currentConversationId,
+                        }),
+                    );
+                } else {
+                    addSystemMessage(
+                        "Error: No hay conexión con el servidor. Intenta recargar la página.",
+                    );
+                }
             }
 
             function addUserMessage(content) {
@@ -242,48 +325,107 @@
                 messageDiv.className = "message user-message";
                 messageDiv.textContent = content;
                 chatContainer.appendChild(messageDiv);
+                return messageDiv;
             }
 
-            function addAssistantMessage(
-                content,
-                messageId,
-                existingFeedback = null,
-            ) {
+            function addAssistantMessage(content, messageId) {
                 const chatContainer = document.getElementById("chat-container");
 
-                // Mensaje principal
+                // Message container
                 const messageDiv = document.createElement("div");
                 messageDiv.className = "message assistant-message";
-                messageDiv.textContent = content;
+                messageDiv.innerHTML = content; // Use innerHTML to support rendered markdown
+                messageDiv.setAttribute("data-message-id", messageId);
                 chatContainer.appendChild(messageDiv);
 
-                // Botones de feedback
-                if (messageId) {
-                    const feedbackDiv = document.createElement("div");
-                    feedbackDiv.className = "feedback-buttons";
+                return messageDiv;
+            }
 
-                    // Si ya hay feedback, mostrarlo
-                    if (existingFeedback) {
-                        const feedbackSpan = document.createElement("span");
-                        feedbackSpan.textContent = `Has valorado esta respuesta con ${existingFeedback}/5`;
-                        feedbackDiv.appendChild(feedbackSpan);
-                    } else {
-                        // Mostrar opciones para dar feedback
-                        for (let i = 1; i <= 5; i++) {
-                            const button = document.createElement("button");
-                            button.textContent = "⭐";
-                            button.title = `Calificar ${i}/5`;
-                            button.onclick = function () {
-                                sendFeedback(messageId, i, feedbackDiv);
-                            };
-                            feedbackDiv.appendChild(button);
-                        }
-                    }
+            function addFeedbackButtons(messageId) {
+                const messageDiv = document.querySelector(
+                    `.assistant-message[data-message-id="${messageId}"]`,
+                );
+                if (!messageDiv) return;
 
-                    chatContainer.appendChild(feedbackDiv);
+                // Don't add feedback buttons if they already exist
+                if (
+                    messageDiv.nextElementSibling &&
+                    messageDiv.nextElementSibling.classList.contains(
+                        "feedback-buttons",
+                    )
+                ) {
+                    return;
                 }
 
-                return messageDiv;
+                // Create feedback container
+                const feedbackDiv = document.createElement("div");
+                feedbackDiv.className = "feedback-buttons";
+                feedbackDiv.setAttribute("data-for-message", messageId);
+
+                // Add feedback buttons
+                for (let i = 1; i <= 5; i++) {
+                    const button = document.createElement("button");
+                    button.textContent = "⭐";
+                    button.title = `Calificar ${i}/5`;
+                    button.onclick = function () {
+                        sendFeedback(messageId, i);
+                    };
+                    feedbackDiv.appendChild(button);
+                }
+
+                // Insert after the message
+                if (messageDiv.nextSibling) {
+                    messageDiv.parentNode.insertBefore(
+                        feedbackDiv,
+                        messageDiv.nextSibling,
+                    );
+                } else {
+                    messageDiv.parentNode.appendChild(feedbackDiv);
+                }
+            }
+
+            function updateFeedbackUI(messageId, rating) {
+                const feedbackDiv = document.querySelector(
+                    `.feedback-buttons[data-for-message="${messageId}"]`,
+                );
+                if (!feedbackDiv) return;
+
+                feedbackDiv.innerHTML = "";
+                const thankYouSpan = document.createElement("span");
+                thankYouSpan.textContent = `¡Gracias por tu valoración de ${rating}/5!`;
+                feedbackDiv.appendChild(thankYouSpan);
+            }
+
+            function sendFeedback(messageId, rating) {
+                // Send via WebSocket if connected
+                if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                    chatSocket.send(
+                        JSON.stringify({
+                            type: "feedback",
+                            message_id: messageId,
+                            rating: rating,
+                        }),
+                    );
+                } else {
+                    // Fallback to REST API
+                    fetch("/chatbot/api/feedback/", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            message_id: messageId,
+                            rating: rating,
+                        }),
+                    })
+                        .then((response) => response.json())
+                        .then((data) => {
+                            updateFeedbackUI(messageId, rating);
+                        })
+                        .catch((error) => {
+                            console.error("Error:", error);
+                        });
+                }
             }
 
             function addSystemMessage(content) {
@@ -293,31 +435,6 @@
                 messageDiv.textContent = content;
                 chatContainer.appendChild(messageDiv);
                 return messageDiv;
-            }
-
-            function sendFeedback(messageId, rating, feedbackDiv) {
-                fetch("/chatbot/api/feedback/", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        message_id: messageId,
-                        rating: rating,
-                    }),
-                })
-                    .then((response) => response.json())
-                    .then((data) => {
-                        // Actualizar la interfaz
-                        feedbackDiv.innerHTML = "";
-                        const thankYouSpan = document.createElement("span");
-                        thankYouSpan.textContent = `¡Gracias por tu valoración de ${rating}/5!`;
-                        feedbackDiv.appendChild(thankYouSpan);
-                    })
-                    .catch((error) => {
-                        console.error("Error:", error);
-                        feedbackDiv.innerHTML = "Error al enviar valoración.";
-                    });
             }
 
             function clearChatContainer() {

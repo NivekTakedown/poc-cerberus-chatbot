@@ -26,7 +26,7 @@ const ChatHistory = ({ messages, isLoading, onFeedback }) => {
       {isLoading && (
         <div className="loading-indicator">
           <Spinner size="small" />
-          <span>Procesando mensaje...</span>
+          <span>Procesando información...</span>
         </div>
       )}
 

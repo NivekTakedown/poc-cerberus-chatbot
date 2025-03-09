@@ -21,6 +21,8 @@ const ChatbotTemplate = ({
   handleLoadConversation,
   handleStartNewConversation,
   position = "bottom-right",
+  connected = false,
+  streaming = false,
 }) => {
   const positionClass = `chatbot-position-${position}`;
 
@@ -39,6 +41,7 @@ const ChatbotTemplate = ({
     );
   }
 
+  // Eliminado el texto de "(Conectado)" dejando solo el indicador visual
   return (
     <div className={`chatbot-container ${positionClass}`}>
       <div className="chatbot-window">
@@ -48,6 +51,8 @@ const ChatbotTemplate = ({
           onToggleConversations={() => setShowConversations(!showConversations)}
           showHistoryButton={!!conversationId}
           showingConversations={showConversations}
+          connected={connected}
+          streaming={streaming}
         />
 
         {showConversations ? (
@@ -67,6 +72,7 @@ const ChatbotTemplate = ({
             <ChatInput
               onSendMessage={handleSendMessage}
               isLoading={isLoading}
+              disabled={!connected && !isLoading}
             />
           </>
         )}
