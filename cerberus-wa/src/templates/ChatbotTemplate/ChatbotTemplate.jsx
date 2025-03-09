@@ -21,6 +21,8 @@ const ChatbotTemplate = ({
   handleLoadConversation,
   handleStartNewConversation,
   position = "bottom-right",
+  connected = false,
+  streaming = false,
 }) => {
   const positionClass = `chatbot-position-${position}`;
 
@@ -39,15 +41,23 @@ const ChatbotTemplate = ({
     );
   }
 
+  const statusText = !connected
+    ? "(Desconectado)"
+    : streaming
+      ? "(Generando...)"
+      : "(Conectado)";
+
   return (
     <div className={`chatbot-container ${positionClass}`}>
       <div className="chatbot-window">
         <ChatHeader
-          title="Cerberus Chatbot"
+          title={`Cerberus Chatbot ${statusText}`}
           onClose={() => setIsOpen(false)}
           onToggleConversations={() => setShowConversations(!showConversations)}
           showHistoryButton={!!conversationId}
           showingConversations={showConversations}
+          connected={connected}
+          streaming={streaming}
         />
 
         {showConversations ? (
@@ -67,6 +77,7 @@ const ChatbotTemplate = ({
             <ChatInput
               onSendMessage={handleSendMessage}
               isLoading={isLoading}
+              disabled={!connected && !isLoading}
             />
           </>
         )}

@@ -73,7 +73,37 @@
 .message-assistant p:first-child {
     margin-top: 0;
 }
+.message-streaming {
+    position: relative;
+    border-left: 3px solid #007bff;
+}
 
+.streaming-indicator {
+    display: inline-block;
+    margin-left: 5px;
+    vertical-align: middle;
+}
+
+@keyframes typing {
+    0%,
+    100% {
+        opacity: 0.2;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+.message-streaming::after {
+    content: "";
+    display: inline-block;
+    width: 3px;
+    height: 16px;
+    background-color: #007bff;
+    margin-left: 2px;
+    animation: typing 1s infinite;
+    vertical-align: text-bottom;
+}
 .message-assistant p:last-child {
     margin-bottom: 0;
 }

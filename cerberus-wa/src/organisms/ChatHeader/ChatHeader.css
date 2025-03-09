@@ -41,3 +41,46 @@
     background-color: rgba(255, 255, 255, 0.1);
     border-radius: 50%;
 }
+.chat-header.disconnected {
+    background-color: #dc3545;
+}
+
+.connection-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-left: 8px;
+}
+
+.connection-indicator.connected {
+    background-color: #28a745;
+}
+
+.connection-indicator.disconnected {
+    background-color: #dc3545;
+}
+.chat-header.streaming {
+    background-color: #0056b3;
+}
+
+.connection-indicator.streaming {
+    background-color: #ffc107;
+    animation: pulse 1.5s infinite;
+}
+
+.header-spinner {
+    margin-left: 8px;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.4;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.4;
+    }
+}

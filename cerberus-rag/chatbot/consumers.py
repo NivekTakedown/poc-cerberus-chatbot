@@ -105,28 +105,41 @@ class ChatConsumer(AsyncWebsocketConsumer):
             content=""  # Empty content initially
         )
 
-        # Get streaming response
-        async for token in chat_service.stream_query(query, chat_history):
-            response_text += token
-            # Send the token to the WebSocket
+        try:
+            # Get streaming response
+            async for token in chat_service.stream_query(query, chat_history):
+                if token:  # Make sure we only send non-empty tokens
+                    response_text += token
+                    # Send the token to the WebSocket
+                    await self.send(text_data=json.dumps({
+                        'type': 'streaming_token',
+                        'token': token,
+                        'message_id': str(assistant_message.id)
+                    }))
+
+            # Update the message with the complete response
+            assistant_message.content = response_text
+            await sync_to_async(assistant_message.save)()
+
+            # Send complete message notification
             await self.send(text_data=json.dumps({
-                'type': 'streaming_token',
-                'token': token,
-                'message_id': str(assistant_message.id)
+                'type': 'message_complete',
+                'message_id': str(assistant_message.id),
+                'conversation_id': str(conversation.id),
+                'full_message': response_text  # Include the full message
+            }))
+        except Exception as e:
+            logger.error(f"Error in stream_response: {str(e)}")
+            # Send error message
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': f"Error: {str(e)}"
             }))
 
-        # Update the message with the complete response
-        assistant_message.content = response_text
-        await sync_to_async(assistant_message.save)()
-
-        # Send complete message notification
-        await self.send(text_data=json.dumps({
-            'type': 'message_complete',
-            'message_id': str(assistant_message.id),
-            'conversation_id': str(conversation.id),
-            'full_message': response_text
-        }))
-
+        # Make sure to update the message even on error
+        if not assistant_message.content and response_text:
+            assistant_message.content = f"{response_text} (Error: {str(e)})"
+            await sync_to_async(assistant_message.save)()
     async def process_feedback(self, message_id, rating):
         from .models import Feedback
 
