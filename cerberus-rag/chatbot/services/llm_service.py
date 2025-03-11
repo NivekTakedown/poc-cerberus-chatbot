@@ -8,7 +8,7 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 logger = logging.getLogger(__name__)
 
 class LLMService:
-    def __init__(self, model_name="llama3.2", temperature=0.0):
+    def __init__(self, model_name="ollama run deepseek-r1:14b", temperature=0.0):
         self.model_name = model_name
         self.temperature = temperature
         self.llm = None
